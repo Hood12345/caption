@@ -5,7 +5,7 @@ import uuid
 import cv2
 
 UPLOAD_DIR = "/tmp"
-FONT_PATH = os.path.join(os.getcwd(), "static", "Inter_28pt-Thin.ttf")
+FONT_PATH = os.path.join(os.getcwd(), "static", "Inter_18pt-Thin.ttf")
 FONT_SIZE = 48
 MARGIN = 10
 FALLBACK_Y = 390
