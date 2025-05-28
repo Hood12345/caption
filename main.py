@@ -69,7 +69,7 @@ def caption():
         drawtext = (
             f"drawtext=fontfile='{FONT_PATH}':text='{safe_caption}':"
             f"fontcolor=black:fontsize={FONT_SIZE}:x=(w-text_w)/2:y={caption_y}"
-            f":fix_bounds=1:letter_spacing=2"
+            f":fix_bounds=1"
         )
         print(f"[INFO] Applying caption at y={caption_y}")
 
