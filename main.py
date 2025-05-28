@@ -7,7 +7,7 @@ import cv2
 app = Flask(__name__)
 
 UPLOAD_DIR = "/tmp"
-FONT_PATH = "Inter_28pt-Thin.ttf"
+FONT_PATH = "Inter-ExtraLight.ttf"
 FONT_SIZE = 48
 MARGIN = 10
 FALLBACK_Y = 390
