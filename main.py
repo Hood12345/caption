@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 UPLOAD_DIR = "/tmp"
 FONT_PATH = "Inter-ExtraLight.ttf"
-FONT_SIZE = 48
+FONT_SIZE = 36
 MARGIN = 10
 FALLBACK_Y = 390
 
