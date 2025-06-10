@@ -1,10 +1,16 @@
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
 import os
-import regex  # Better than re for emojis
+import regex  # Better for emoji handling
 
 def is_emoji(char):
     return regex.match(r"\p{Emoji}", char)
+
+def get_char_size(char, font):
+    bbox = font.getbbox(char)
+    width = bbox[2] - bbox[0]
+    height = bbox[3] - bbox[1]
+    return width, height
 
 def generate_caption_image(caption, output_path, video_width, font_path, emoji_font_path, font_size=36, max_width_ratio=0.85, margin=10):
     max_text_width = int(video_width * max_width_ratio)
@@ -12,22 +18,19 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_f
     main_font = ImageFont.truetype(font_path, font_size)
     emoji_font = ImageFont.truetype(emoji_font_path, font_size)
 
-    # Wrap lines
+    # Wrap text
     wrapped_lines = []
     for line in caption.split("\n"):
         wrapped_lines.extend(textwrap.wrap(line, width=40))
 
-    # Dummy canvas for measuring
-    dummy_img = Image.new("RGBA", (video_width, 200), (255, 255, 255, 0))
-    draw = ImageDraw.Draw(dummy_img)
-
+    # Measure line sizes
     line_metrics = []
     for line in wrapped_lines:
         width = 0
         max_height = 0
         for char in line:
             font = emoji_font if is_emoji(char) else main_font
-            w, h = font.getsize(char)  # Replaced draw.textsize with font.getsize
+            w, h = get_char_size(char, font)
             width += w
             max_height = max(max_height, h)
         line_metrics.append((width, max_height))
@@ -43,7 +46,7 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_f
         x = (video_width - line_width) // 2
         for char in line:
             font = emoji_font if is_emoji(char) else main_font
-            w, _ = font.getsize(char)  # Same fix here
+            w, _ = get_char_size(char, font)
             draw.text((x, y), char, font=font, fill="black")
             x += w
         y += line_height + margin
