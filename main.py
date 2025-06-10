@@ -13,7 +13,6 @@ FONT_PATH = "Inter-ExtraLight.ttf"
 EMOJI_FONT_PATH = "Twemoji.ttf"
 FALLBACK_Y = 390
 
-
 def extract_top_y_from_frame(frame_path):
     print("[INFO] Analyzing frame with OpenCV...")
     img = cv2.imread(frame_path)
@@ -31,11 +30,9 @@ def extract_top_y_from_frame(frame_path):
     top_y = min([cv2.boundingRect(c)[1] for c in contours])
     return max(10, top_y)
 
-
 @app.route("/caption", methods=["POST"])
 def caption():
     input_path = output_path = caption_img_path = frame_path = None
-
     if 'file' not in request.files or 'caption' not in request.form:
         return jsonify({'error': 'Missing file or caption'}), 400
 
@@ -52,6 +49,7 @@ def caption():
         video.save(input_path)
         print(f"[INFO] Video saved at {input_path}")
 
+        # Extract frame for analysis
         subprocess.run([
             "ffmpeg", "-i", input_path, "-vf", "select=eq(n\\,0)",
             "-q:v", "3", "-frames:v", "1", frame_path
@@ -59,14 +57,15 @@ def caption():
 
         top_y = extract_top_y_from_frame(frame_path)
 
-        # ✅ Fix: include the emoji font path here
+        # ✅ FIXED: Include output_path as required by your caption_utils.py
         caption_img_path, caption_height = generate_caption_image(
-            caption, 1080, FONT_PATH, EMOJI_FONT_PATH
+            caption, caption_img_path, 1080, FONT_PATH, EMOJI_FONT_PATH
         )
 
         overlay_y = max(10, top_y - caption_height - 10)
         print(f"[INFO] Overlay Y: {overlay_y}")
 
+        # Overlay caption on video
         subprocess.run([
             "ffmpeg", "-i", input_path, "-i", caption_img_path,
             "-filter_complex", f"overlay=(main_w-overlay_w)/2:{overlay_y}",
@@ -95,11 +94,9 @@ def caption():
             except Exception as ce:
                 print(f"[WARN] Could not delete {f}: {ce}")
 
-
 @app.route("/health", methods=["GET"])
 def health():
     return {"status": "ok"}, 200
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), debug=True)
