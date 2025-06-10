@@ -8,13 +8,14 @@ RUN apt-get update && \
 # Set working directory
 WORKDIR /app
 
-# Copy all source files (make sure static/ and main.py are present)
+# Copy source files
 COPY . /app
+COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir flask opencv-python-headless
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port for Railway (default: 8000)
+# Expose port for Railway
 EXPOSE 8000
 
 # Run the Flask app
