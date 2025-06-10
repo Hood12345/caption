@@ -2,13 +2,14 @@ from flask import Flask, request, send_file, jsonify
 import os
 import uuid
 import subprocess
+import traceback
 from caption_utils import generate_caption_image
 
 app = Flask(__name__)
 
 UPLOAD_DIR = "/tmp"
 FONT_PATH = "Inter-ExtraLight.ttf"       # Your main font
-EMOJI_FONT_PATH = "Twemoji.ttf"          # Your emoji font
+EMOJI_FONT_PATH = "Twemoji.ttf"          # Emoji font
 
 @app.route("/caption", methods=["POST"])
 def caption():
@@ -27,7 +28,7 @@ def caption():
         video.save(input_path)
         print(f"[INFO] Video saved at {input_path}")
 
-        # Generate caption image with emojis and correct spacing
+        # Generate caption image
         generate_caption_image(caption, caption_img_path, FONT_PATH, EMOJI_FONT_PATH)
 
         # Overlay caption image on top of video
@@ -45,9 +46,11 @@ def caption():
 
     except subprocess.TimeoutExpired as te:
         print(f"[ERROR] ffmpeg timed out: {te}")
+        traceback.print_exc()
         return jsonify({"error": "ffmpeg process timed out"}), 500
     except Exception as e:
         print(f"[ERROR] {e}")
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
     finally:
         for f in [input_path, output_path, caption_img_path]:
