@@ -19,21 +19,22 @@ def generate_caption_image(caption, video_width, font_path, emoji_font_path, fon
         wrapped = textwrap.wrap(line, width=40)
         wrapped_lines.extend(wrapped)
 
-    # Combine main + emoji fonts
-    font = main_font  # You can implement emoji-aware mixing later if needed
+    font = main_font  # For now, just use main font
 
-    # Measure total height
+    # Measure total height and line widths
     line_heights = []
     line_widths = []
 
     for line in wrapped_lines:
-        w, h = draw.textsize(line, font=font)
-        line_heights.append(h)
-        line_widths.append(w)
+        bbox = draw.textbbox((0, 0), line, font=font)
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
+        line_widths.append(int(w))
+        line_heights.append(int(h))
 
     total_height = sum(line_heights) + margin * (len(line_heights) - 1)
-    img_height = total_height + 2 * margin
-    img_width = video_width
+    img_height = int(total_height + 2 * margin)
+    img_width = int(video_width)
 
     # Create final image
     img = Image.new("RGBA", (img_width, img_height), (255, 255, 255, 0))
@@ -42,7 +43,7 @@ def generate_caption_image(caption, video_width, font_path, emoji_font_path, fon
     y = margin
     for i, line in enumerate(wrapped_lines):
         line_width = line_widths[i]
-        x = (img_width - line_width) // 2
+        x = int((img_width - line_width) // 2)
         draw.text((x, y), line, font=font, fill="black")
         y += line_heights[i] + margin
 
