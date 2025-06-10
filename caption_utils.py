@@ -1,39 +1,56 @@
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
 import os
-import regex  # Better for emoji handling
+import regex
 
 def is_emoji(char):
     return regex.match(r"\p{Emoji}", char)
 
-def get_char_size(char, font):
-    bbox = font.getbbox(char)
-    width = bbox[2] - bbox[0]
-    height = bbox[3] - bbox[1]
-    return width, height
+def emoji_to_filename(emoji):
+    codepoints = '-'.join(f"{ord(c):x}" for c in emoji)
+    return f"{codepoints}.png"
 
-def generate_caption_image(caption, output_path, video_width, font_path, emoji_font_path, font_size=36, max_width_ratio=0.85, margin=10):
-    max_text_width = int(video_width * max_width_ratio)
-
+def generate_caption_image(caption, output_path, video_width, font_path, emoji_dir, font_size=36, max_width_ratio=0.85, margin=10):
     main_font = ImageFont.truetype(font_path, font_size)
-    emoji_font = ImageFont.truetype(emoji_font_path, font_size)
 
-    # Wrap text
+    # Wrap lines
     wrapped_lines = []
     for line in caption.split("\n"):
         wrapped_lines.extend(textwrap.wrap(line, width=40))
 
-    # Measure line sizes
+    dummy_img = Image.new("RGBA", (video_width, 200), (255, 255, 255, 0))
+    draw = ImageDraw.Draw(dummy_img)
+
     line_metrics = []
+    char_maps = []
+
     for line in wrapped_lines:
         width = 0
-        max_height = 0
+        height = 0
+        char_map = []
+
         for char in line:
-            font = emoji_font if is_emoji(char) else main_font
-            w, h = get_char_size(char, font)
+            if is_emoji(char):
+                filename = emoji_to_filename(char)
+                path = os.path.join(emoji_dir, filename)
+                if os.path.exists(path):
+                    img = Image.open(path).convert("RGBA")
+                    scale = font_size / img.height
+                    emoji_img = img.resize((int(img.width * scale), font_size), Image.ANTIALIAS)
+                    w, h = emoji_img.size
+                    char_map.append((char, 'emoji', emoji_img))
+                else:
+                    w, h = draw.textsize(char, font=main_font)
+                    char_map.append((char, 'text', main_font))
+            else:
+                w, h = draw.textsize(char, font=main_font)
+                char_map.append((char, 'text', main_font))
+
             width += w
-            max_height = max(max_height, h)
-        line_metrics.append((width, max_height))
+            height = max(height, h)
+
+        char_maps.append(char_map)
+        line_metrics.append((width, height))
 
     total_height = sum(h for _, h in line_metrics) + margin * (len(line_metrics) - 1)
     img_height = total_height + 2 * margin
@@ -41,14 +58,19 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_f
     draw = ImageDraw.Draw(img)
 
     y = margin
-    for idx, line in enumerate(wrapped_lines):
+    for idx, char_map in enumerate(char_maps):
         line_width, line_height = line_metrics[idx]
         x = (video_width - line_width) // 2
-        for char in line:
-            font = emoji_font if is_emoji(char) else main_font
-            w, _ = get_char_size(char, font)
-            draw.text((x, y), char, font=font, fill="black")
-            x += w
+
+        for char, kind, content in char_map:
+            if kind == 'emoji':
+                img.paste(content, (x, y), content)
+                x += content.size[0]
+            else:
+                w, _ = draw.textsize(char, font=content)
+                draw.text((x, y), char, font=content, fill="black")
+                x += w
+
         y += line_height + margin
 
     img.save(output_path)
