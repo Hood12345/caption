@@ -43,7 +43,6 @@ def caption():
 
         input_id = str(uuid.uuid4())
         input_path = os.path.join(UPLOAD_DIR, f"{input_id}.mp4")
-        caption_img_path = os.path.join(UPLOAD_DIR, f"{input_id}_caption.png")
         output_path = os.path.join(UPLOAD_DIR, f"{input_id}_captioned.mp4")
         frame_path = os.path.join(UPLOAD_DIR, f"{input_id}_frame.jpg")
 
