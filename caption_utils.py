@@ -11,6 +11,10 @@ def emoji_to_filename(emoji):
     return f"{codepoints}.png"
 
 def generate_caption_image(caption, output_path, video_width, font_path, emoji_dir, font_size=36, max_width_ratio=0.85, margin=10):
+    font_size = int(round(font_size))  # ✅ Ensure font_size is an integer
+    video_width = int(video_width)
+    margin = int(margin)
+
     main_font = ImageFont.truetype(font_path, font_size)
 
     # Wrap lines
@@ -36,7 +40,10 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
                 if os.path.exists(path):
                     img = Image.open(path).convert("RGBA")
                     scale = font_size / img.height
-                    emoji_img = img.resize((int(img.width * scale), font_size), Image.Resampling.LANCZOS)
+                    emoji_img = img.resize(
+                        (int(img.width * scale), int(font_size)),
+                        Image.Resampling.LANCZOS
+                    )  # ✅ FIXED both dimensions
                     w, h = emoji_img.size
                     char_map.append((char, 'emoji', emoji_img))
                 else:
@@ -53,22 +60,22 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
         line_metrics.append((width, height))
 
     total_height = sum(h for _, h in line_metrics) + margin * (len(line_metrics) - 1)
-    img_height = total_height + 2 * margin
-    img = Image.new("RGBA", (video_width, img_height), (255, 255, 255, 0))
+    img_height = int(round(total_height + 2 * margin))  # ✅ Ensure int
+    img = Image.new("RGBA", (video_width, img_height), (255, 255, 255, 0))  # ✅ Ensure int
     draw = ImageDraw.Draw(img)
 
     y = margin
     for idx, char_map in enumerate(char_maps):
         line_width, line_height = line_metrics[idx]
-        x = (video_width - line_width) // 2
+        x = int((video_width - line_width) // 2)
 
         for char, kind, content in char_map:
             if kind == 'emoji':
-                img.paste(content, (x, y), content)
+                img.paste(content, (int(x), int(y)), content)
                 x += content.size[0]
             else:
                 w = content.getbbox(char)[2]
-                draw.text((x, y), char, font=content, fill="black")
+                draw.text((int(x), int(y)), char, font=content, fill="black")
                 x += w - 1.5
 
         y += line_height + margin
