@@ -9,8 +9,8 @@ from caption_utils import generate_caption_image
 app = Flask(__name__)
 
 UPLOAD_DIR = "/tmp"
-FONT_PATH = "Inter-ExtraLight.ttf"       # Your main font
-EMOJI_FONT_PATH = "Twemoji.ttf"          # Emoji font
+FONT_PATH = "Inter-ExtraLight.ttf"
+EMOJI_FONT_PATH = "Twemoji.ttf"
 FALLBACK_Y = 390
 
 
@@ -34,6 +34,8 @@ def extract_top_y_from_frame(frame_path):
 
 @app.route("/caption", methods=["POST"])
 def caption():
+    input_path = output_path = caption_img_path = frame_path = None
+
     if 'file' not in request.files or 'caption' not in request.form:
         return jsonify({'error': 'Missing file or caption'}), 400
 
@@ -43,22 +45,21 @@ def caption():
 
         input_id = str(uuid.uuid4())
         input_path = os.path.join(UPLOAD_DIR, f"{input_id}.mp4")
+        caption_img_path = os.path.join(UPLOAD_DIR, f"{input_id}_caption.png")
         output_path = os.path.join(UPLOAD_DIR, f"{input_id}_captioned.mp4")
         frame_path = os.path.join(UPLOAD_DIR, f"{input_id}_frame.jpg")
 
         video.save(input_path)
         print(f"[INFO] Video saved at {input_path}")
 
-        # Extract first frame for OpenCV analysis
         subprocess.run([
             "ffmpeg", "-i", input_path, "-vf", "select=eq(n\\,0)",
             "-q:v", "3", "-frames:v", "1", frame_path
         ], check=True)
 
-        # Get top Y position from frame analysis
         top_y = extract_top_y_from_frame(frame_path)
 
-        # Generate caption image and get its height
+        # ✅ Fix: include the emoji font path here
         caption_img_path, caption_height = generate_caption_image(
             caption, 1080, FONT_PATH, EMOJI_FONT_PATH
         )
@@ -66,7 +67,6 @@ def caption():
         overlay_y = max(10, top_y - caption_height - 10)
         print(f"[INFO] Overlay Y: {overlay_y}")
 
-        # Overlay caption image on top of video
         subprocess.run([
             "ffmpeg", "-i", input_path, "-i", caption_img_path,
             "-filter_complex", f"overlay=(main_w-overlay_w)/2:{overlay_y}",
@@ -90,7 +90,7 @@ def caption():
     finally:
         for f in [input_path, output_path, caption_img_path, frame_path]:
             try:
-                if os.path.exists(f):
+                if f and os.path.exists(f):
                     os.remove(f)
             except Exception as ce:
                 print(f"[WARN] Could not delete {f}: {ce}")
