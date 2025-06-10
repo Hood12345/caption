@@ -28,10 +28,11 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
         width = 0
         height = 0
         char_map = []
+        last_char = None
 
         for char in line:
             if is_emoji(char):
-                filename = emoji_to_filename(char)
+                filename = emoji_to_filename(emoji=char)
                 path = os.path.join(emoji_dir, filename)
                 if os.path.exists(path):
                     img = Image.open(path).convert("RGBA")
@@ -39,14 +40,28 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
                     emoji_img = img.resize((int(img.width * scale), font_size), Image.Resampling.LANCZOS)
                     w, h = emoji_img.size
                     char_map.append((char, 'emoji', emoji_img))
+                    width += w
                 else:
                     w, h = main_font.getbbox(char)[2:]
                     char_map.append((char, 'text', main_font))
+                    if last_char:
+                        pair = last_char + char
+                        spacing = main_font.getlength(pair) - main_font.getlength(last_char)
+                        width += spacing
+                    else:
+                        width += main_font.getlength(char)
+                last_char = None  # Reset kerning after emoji
             else:
                 w, h = main_font.getbbox(char)[2:]
                 char_map.append((char, 'text', main_font))
+                if last_char:
+                    pair = last_char + char
+                    spacing = main_font.getlength(pair) - main_font.getlength(last_char)
+                    width += spacing
+                else:
+                    width += main_font.getlength(char)
+                last_char = char
 
-            width += w - 2
             height = max(height, h)
 
         char_maps.append(char_map)
@@ -61,15 +76,22 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
     for idx, char_map in enumerate(char_maps):
         line_width, line_height = line_metrics[idx]
         x = (video_width - line_width) // 2
+        last_char = None
 
         for char, kind, content in char_map:
             if kind == 'emoji':
                 img.paste(content, (x, y), content)
                 x += content.size[0]
+                last_char = None
             else:
-                w = content.getbbox(char)[2]
                 draw.text((x, y), char, font=content, fill="black")
-                x += w - 2
+                if last_char:
+                    pair = last_char + char
+                    spacing = content.getlength(pair) - content.getlength(last_char)
+                    x += spacing
+                else:
+                    x += content.getlength(char)
+                last_char = char
 
         y += line_height + margin
 
