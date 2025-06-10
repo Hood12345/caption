@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 UPLOAD_DIR = "/tmp"
 FONT_PATH = "Inter-ExtraLight.ttf"
-EMOJI_FONT_PATH = "Twemoji.ttf"
+EMOJI_IMAGE_DIR = "Twemoji_Images"  # ✅ Updated to use image folder
 FALLBACK_Y = 390
 
 def extract_top_y_from_frame(frame_path):
@@ -49,7 +49,7 @@ def caption():
         video.save(input_path)
         print(f"[INFO] Video saved at {input_path}")
 
-        # Extract frame for analysis
+        # Extract first frame
         subprocess.run([
             "ffmpeg", "-i", input_path, "-vf", "select=eq(n\\,0)",
             "-q:v", "3", "-frames:v", "1", frame_path
@@ -57,9 +57,9 @@ def caption():
 
         top_y = extract_top_y_from_frame(frame_path)
 
-        # ✅ FIXED: Include output_path as required by your caption_utils.py
+        # ✅ Call updated caption function
         caption_img_path, caption_height = generate_caption_image(
-            caption, caption_img_path, 1080, FONT_PATH, EMOJI_FONT_PATH
+            caption, caption_img_path, 1080, FONT_PATH, EMOJI_IMAGE_DIR
         )
 
         overlay_y = max(10, top_y - caption_height - 10)
