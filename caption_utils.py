@@ -69,7 +69,7 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
             else:
                 w = content.getbbox(char)[2]
                 draw.text((x, y), char, font=content, fill="black")
-                x += w
+                x += w - 2
 
         y += line_height + margin
 
