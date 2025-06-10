@@ -22,14 +22,15 @@ def caption():
 
         input_id = str(uuid.uuid4())
         input_path = os.path.join(UPLOAD_DIR, f"{input_id}.mp4")
-        caption_img_path = os.path.join(UPLOAD_DIR, f"{input_id}_caption.png")
         output_path = os.path.join(UPLOAD_DIR, f"{input_id}_captioned.mp4")
 
         video.save(input_path)
         print(f"[INFO] Video saved at {input_path}")
 
         # Generate caption image
-        generate_caption_image(caption, caption_img_path, FONT_PATH, EMOJI_FONT_PATH)
+        caption_img_path, caption_height = generate_caption_image(
+            caption, 1080, FONT_PATH, EMOJI_FONT_PATH
+        )
 
         # Overlay caption image on top of video
         subprocess.run([
