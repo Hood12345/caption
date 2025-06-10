@@ -11,7 +11,7 @@ def emoji_to_filename(emoji):
     return f"{codepoints}.png"
 
 def generate_caption_image(caption, output_path, video_width, font_path, emoji_dir, font_size=36, max_width_ratio=0.85, margin=10):
-    font_size = int(font_size)  # ✅ Ensure font_size is int
+    font_size = int(round(font_size))  # ✅ Ensure font_size is integer-safe
     main_font = ImageFont.truetype(font_path, font_size)
 
     # Wrap lines
@@ -19,7 +19,7 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
     for line in caption.split("\n"):
         wrapped_lines.extend(textwrap.wrap(line, width=40))
 
-    dummy_img = Image.new("RGBA", (video_width, 200), (255, 255, 255, 0))
+    dummy_img = Image.new("RGBA", (int(video_width), 200), (255, 255, 255, 0))
     draw = ImageDraw.Draw(dummy_img)
 
     line_metrics = []
@@ -37,8 +37,10 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
                 path = os.path.join(emoji_dir, filename)
                 if os.path.exists(path):
                     img = Image.open(path).convert("RGBA")
-                    scale = font_size / img.height
-                    emoji_img = img.resize((int(img.width * scale), int(font_size)), Image.Resampling.LANCZOS)  # ✅ FIXED
+                    scale = float(font_size) / img.height
+                    new_width = int(round(img.width * scale))
+                    new_height = int(round(font_size))
+                    emoji_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
                     w, h = emoji_img.size
                     char_map.append((char, 'emoji', emoji_img))
                     width += w
@@ -51,7 +53,7 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
                         width += spacing
                     else:
                         width += main_font.getlength(char)
-                last_char = None  # reset after emoji
+                last_char = None
             else:
                 w, h = main_font.getbbox(char)[2:]
                 char_map.append((char, 'text', main_font))
@@ -69,8 +71,8 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
         line_metrics.append((width, height))
 
     total_height = sum(h for _, h in line_metrics) + margin * (len(line_metrics) - 1)
-    img_height = total_height + 2 * margin
-    img = Image.new("RGBA", (video_width, img_height), (255, 255, 255, 0))
+    img_height = int(round(total_height + 2 * margin))
+    img = Image.new("RGBA", (int(video_width), img_height), (255, 255, 255, 0))
     draw = ImageDraw.Draw(img)
 
     y = margin
@@ -81,11 +83,11 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
 
         for char, kind, content in char_map:
             if kind == 'emoji':
-                img.paste(content, (x, y), content)
+                img.paste(content, (int(x), int(y)), content)
                 x += content.size[0]
                 last_char = None
             else:
-                draw.text((x, y), char, font=content, fill="black")
+                draw.text((int(x), int(y)), char, font=content, fill="black")
                 if last_char:
                     pair = last_char + char
                     spacing = content.getlength(pair) - content.getlength(last_char)
