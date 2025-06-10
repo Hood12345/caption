@@ -11,6 +11,7 @@ def emoji_to_filename(emoji):
     return f"{codepoints}.png"
 
 def generate_caption_image(caption, output_path, video_width, font_path, emoji_dir, font_size=36, max_width_ratio=0.85, margin=10):
+    font_size = int(font_size)  # ✅ Ensure font_size is int
     main_font = ImageFont.truetype(font_path, font_size)
 
     # Wrap lines
@@ -32,12 +33,12 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
 
         for char in line:
             if is_emoji(char):
-                filename = emoji_to_filename(emoji=char)
+                filename = emoji_to_filename(char)
                 path = os.path.join(emoji_dir, filename)
                 if os.path.exists(path):
                     img = Image.open(path).convert("RGBA")
                     scale = font_size / img.height
-                    emoji_img = img.resize((int(img.width * scale), font_size), Image.Resampling.LANCZOS)
+                    emoji_img = img.resize((int(img.width * scale), int(font_size)), Image.Resampling.LANCZOS)  # ✅ FIXED
                     w, h = emoji_img.size
                     char_map.append((char, 'emoji', emoji_img))
                     width += w
@@ -50,7 +51,7 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
                         width += spacing
                     else:
                         width += main_font.getlength(char)
-                last_char = None  # Reset kerning after emoji
+                last_char = None  # reset after emoji
             else:
                 w, h = main_font.getbbox(char)[2:]
                 char_map.append((char, 'text', main_font))
