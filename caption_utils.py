@@ -27,7 +27,7 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_f
         max_height = 0
         for char in line:
             font = emoji_font if is_emoji(char) else main_font
-            w, h = draw.textsize(char, font=font)
+            w, h = font.getsize(char)  # Replaced draw.textsize with font.getsize
             width += w
             max_height = max(max_height, h)
         line_metrics.append((width, max_height))
@@ -43,7 +43,7 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_f
         x = (video_width - line_width) // 2
         for char in line:
             font = emoji_font if is_emoji(char) else main_font
-            w, _ = draw.textsize(char, font=font)
+            w, _ = font.getsize(char)  # Same fix here
             draw.text((x, y), char, font=font, fill="black")
             x += w
         y += line_height + margin
