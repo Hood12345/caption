@@ -10,6 +10,12 @@ def emoji_to_filename(emoji):
     codepoints = '-'.join(f"{ord(c):x}" for c in emoji)
     return f"{codepoints}.png"
 
+def get_text_size(font, text):
+    bbox = font.getbbox(text)
+    width = bbox[2] - bbox[0]
+    height = bbox[3] - bbox[1]
+    return width, height
+
 def generate_caption_image(caption, output_path, video_width, font_path, emoji_dir, font_size=36, max_width_ratio=0.85, margin=10):
     main_font = ImageFont.truetype(font_path, font_size)
 
@@ -40,10 +46,10 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
                     w, h = emoji_img.size
                     char_map.append((char, 'emoji', emoji_img))
                 else:
-                    w, h = draw.textsize(char, font=main_font)
+                    w, h = get_text_size(main_font, char)
                     char_map.append((char, 'text', main_font))
             else:
-                w, h = draw.textsize(char, font=main_font)
+                w, h = get_text_size(main_font, char)
                 char_map.append((char, 'text', main_font))
 
             width += w
@@ -67,7 +73,7 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
                 img.paste(content, (x, y), content)
                 x += content.size[0]
             else:
-                w, _ = draw.textsize(char, font=content)
+                w, _ = get_text_size(content, char)
                 draw.text((x, y), char, font=content, fill="black")
                 x += w
 
