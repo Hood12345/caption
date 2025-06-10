@@ -11,7 +11,7 @@ def emoji_to_filename(emoji):
     return f"{codepoints}.png"
 
 def generate_caption_image(caption, output_path, video_width, font_path, emoji_dir, font_size=36, max_width_ratio=0.85, margin=10):
-    scale_factor = 2  # ✅ Render at 2x for sharper output
+    scale_factor = 3  # ✅ Max quality render at 3x
     font_size = int(round(font_size * scale_factor))
     video_width_hr = int(video_width * scale_factor)
     margin = int(margin * scale_factor)
@@ -81,7 +81,7 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
 
         y += line_height + margin
 
-    # ✅ Downscale to final output size
+    # ✅ Downscale to final size
     final_img = img.resize((video_width, int(img_height / scale_factor)), Image.Resampling.LANCZOS)
     final_img.save(output_path)
     return output_path, int(img_height / scale_factor)
