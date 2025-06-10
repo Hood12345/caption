@@ -46,7 +46,7 @@ def generate_caption_image(caption, output_path, video_width, font_path, emoji_d
                 w, h = main_font.getbbox(char)[2:]
                 char_map.append((char, 'text', main_font))
 
-            width += w
+            width += w - 2
             height = max(height, h)
 
         char_maps.append(char_map)
