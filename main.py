@@ -71,7 +71,7 @@ def caption():
             "-filter_complex", f"overlay=(main_w-overlay_w)/2:{overlay_y}",
             "-c:a", "copy", "-preset", "ultrafast",
             "-y", output_path
-        ], check=True, timeout=60)
+        ], check=True, timeout=150)
 
         if not os.path.exists(output_path):
             raise Exception("Failed to generate captioned video.")
