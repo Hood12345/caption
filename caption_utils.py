@@ -25,7 +25,7 @@ def generate_caption_image(
     emoji_dir: str,
     *,
     font_size: int = 36,
-    scale_factor: int = 4,        # super-sampling factor
+    scale_factor: int = 6,        # super-sampling factor
     max_width_ratio: float = 0.85,
     margin: int = 10,
     TRACKING: int = 2             # uniform letter-spacing (px at 1×)
