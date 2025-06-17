@@ -28,7 +28,7 @@ def generate_caption_image(
     scale_factor: int = 6,        # super-sampling factor
     max_width_ratio: float = 0.85,
     margin: int = 10,
-    TRACKING: int = 2             # uniform letter-spacing (px at 1×)
+    TRACKING: int = -2             # uniform letter-spacing (px at 1×)
 ):
     """
     Renders caption at (scale_factor × video_width) then downsamples.
