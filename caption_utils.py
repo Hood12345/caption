@@ -1,87 +1,91 @@
-from PIL import Image, ImageDraw, ImageFont, ImageOps
-import textwrap
-import os
-import regex
+# caption_utils.py  ── replace ONLY the function below ─────────────────────────
+from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageResampling
+import textwrap, os, regex, math
 
 def is_emoji(char):
     return regex.match(r"\p{Emoji}", char)
 
 def emoji_to_filename(emoji):
-    codepoints = '-'.join(f"{ord(c):x}" for c in emoji)
-    return f"{codepoints}.png"
+    return "-".join(f"{ord(c):x}" for c in emoji) + ".png"
 
-def generate_caption_image(caption, output_path, video_width, font_path, emoji_dir, font_size=36, max_width_ratio=0.85, margin=10):
-    scale_factor = 3  # ✅ Max quality render at 3x
-    font_size = int(round(font_size * scale_factor))
-    video_width_hr = int(video_width * scale_factor)
-    margin = int(margin * scale_factor)
+def generate_caption_image(
+    caption: str,
+    output_path: str,
+    video_width: int,
+    font_path: str,
+    emoji_dir: str,
+    *,
+    font_size: int = 36,
+    scale_factor: int = 4,        # 🔄 was 3 → crisper at 4×
+    max_width_ratio: float = 0.85,
+    margin: int = 10,
+    TRACKING: int = 2             # 🔄 uniform letter-spacing (px at 1×)
+):
+    """
+    Renders caption at (scale_factor × video_width) then downsamples.
+    Returns (output_path, caption_height_at_final_scale)
+    """
 
-    main_font = ImageFont.truetype(font_path, font_size)
+    # 1.  High-res setup -------------------------------------------------------
+    fs_hr = font_size * scale_factor
+    video_w_hr = video_width * scale_factor
+    margin_hr   = margin * scale_factor
+    font_hr = ImageFont.truetype(font_path, fs_hr)
 
-    # Wrap lines
+    # 2.  Line wrapping --------------------------------------------------------
     wrapped_lines = []
     for line in caption.split("\n"):
         wrapped_lines.extend(textwrap.wrap(line, width=40))
 
-    dummy_img = Image.new("RGBA", (video_width_hr, 200), (255, 255, 255, 0))
-    draw = ImageDraw.Draw(dummy_img)
-
-    line_metrics = []
-    char_maps = []
-
+    # 3.  Measure & map glyphs -------------------------------------------------
+    line_metrics, line_maps = [], []
     for line in wrapped_lines:
-        width = 0
-        height = 0
-        char_map = []
-
-        for char in line:
-            if is_emoji(char):
-                filename = emoji_to_filename(char)
-                path = os.path.join(emoji_dir, filename)
-                if os.path.exists(path):
-                    img = Image.open(path).convert("RGBA")
-                    scale = font_size / img.height
+        line_w, line_h, glyphs = 0, 0, []
+        for ch in line:
+            if is_emoji(ch):
+                fname = os.path.join(emoji_dir, emoji_to_filename(ch))
+                if os.path.exists(fname):
+                    img = Image.open(fname).convert("RGBA")
+                    scale = fs_hr / img.height
                     emoji_img = img.resize(
-                        (int(img.width * scale), int(font_size)),
-                        Image.Resampling.LANCZOS
+                        (int(img.width * scale), fs_hr),
+                        ImageResampling.LANCZOS
                     )
                     w, h = emoji_img.size
-                    char_map.append((char, 'emoji', emoji_img))
+                    glyphs.append(("emoji", emoji_img, w))
                 else:
-                    w, h = main_font.getbbox(char)[2:]
-                    char_map.append((char, 'text', main_font))
+                    w, h = font_hr.getbbox(ch)[2:]
+                    glyphs.append(("text", ch, w))
             else:
-                w, h = main_font.getbbox(char)[2:]
-                char_map.append((char, 'text', main_font))
+                w, h = font_hr.getbbox(ch)[2:]
+                glyphs.append(("text", ch, w))
+            line_w += w + TRACKING * scale_factor
+            line_h = max(line_h, h)
+        line_w -= TRACKING * scale_factor  # remove trailing space
+        line_metrics.append((line_w, line_h))
+        line_maps.append(glyphs)
 
-            width += w - 1.5 * scale_factor
-            height = max(height, h)
+    # 4.  Create HR canvas -----------------------------------------------------
+    total_h = sum(h for _, h in line_metrics) + margin_hr * (len(line_metrics) - 1)
+    canvas_h_hr = total_h + 2 * margin_hr
+    img_hr = Image.new("RGBA", (video_w_hr, canvas_h_hr), (255, 255, 255, 0))
+    draw_hr = ImageDraw.Draw(img_hr)
 
-        char_maps.append(char_map)
-        line_metrics.append((width, height))
-
-    total_height = sum(h for _, h in line_metrics) + margin * (len(line_metrics) - 1)
-    img_height = int(round(total_height + 2 * margin))
-    img = Image.new("RGBA", (video_width_hr, img_height), (255, 255, 255, 0))
-    draw = ImageDraw.Draw(img)
-
-    y = margin
-    for idx, char_map in enumerate(char_maps):
-        line_width, line_height = line_metrics[idx]
-        x = int((video_width_hr - line_width) // 2)
-
-        for char, kind, content in char_map:
-            if kind == 'emoji':
-                img.paste(content, (int(x), int(y)), content)
-                x += content.size[0]
+    # 5.  Render text & emojis --------------------------------------------------
+    y = margin_hr
+    for (line_w, line_h), glyphs in zip(line_metrics, line_maps):
+        x = (video_w_hr - line_w) // 2
+        for kind, content, w in glyphs:
+            if kind == "emoji":
+                img_hr.paste(content, (x, y), content)
             else:
-                w = content.getbbox(char)[2]
-                draw.text((int(x), int(y)), char, font=content, fill="black")
-                x += w - 1.5 * scale_factor
+                draw_hr.text((x, y), content, font=font_hr, fill="black")
+            x += w + TRACKING * scale_factor
+        y += line_h + margin_hr
 
-        y += line_height + margin
+    # 6.  Downsample to final size ---------------------------------------------
+    final_h = math.ceil(canvas_h_hr / scale_factor)
+    img_final = img_hr.resize((video_width, final_h), ImageResampling.LANCZOS)
+    img_final.save(output_path, "PNG")
 
-    # ✅ Downscale to final size
-    final_img = img.resize((video_width, int(img_height / scale_factor)), Image.Resampling.LANCZOS)
-    final_img.save(output_path)
-    return output_path, int(img_height / scale_factor)
+    return output_path, final_h
