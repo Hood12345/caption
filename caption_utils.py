@@ -29,7 +29,7 @@ def generate_caption_image(
     scale_factor: int = 6,        # super-sampling factor
     max_width_ratio: float = 0.85,
     margin: int = 10,
-    TRACKING: int = -2            # negative = tight kerning
+    TRACKING: int = -1.75            # negative = tight kerning
 ):
     """
     Render a razor-sharp PNG caption strip that remains ultra-thin but deep black.
