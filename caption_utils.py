@@ -100,7 +100,7 @@ def generate_caption_image(
                     (x, y),
                     content,
                     font=font_hr,
-                    fill="black",
+                    fill="#222222",
                     stroke_width=stroke_px_hr,
                     stroke_fill="black"
                 )
